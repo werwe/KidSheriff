@@ -1,4 +1,4 @@
-package com.starmark.sheriff.model;
+package com.starmark.sheriff.Entity;
 
 import org.joda.time.DateTime;
 
