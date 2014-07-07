@@ -12,7 +12,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
-import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.starmark.sheriff.Entity.UserSetting;
 import com.starmark.sheriff.pojo.LinkRequestData;
@@ -20,18 +19,12 @@ import com.starmark.sheriff.pojo.LinkRequestData;
 @Path("/apis")
 public class SheriffServer {
 
-	static {
-		ObjectifyService.register(UserSetting.class);
-		System.out.print("registered");
-	}
-
 	@GET
 	@Path("/hello/name={name}")
 	@Produces(MediaType.TEXT_PLAIN)
 	public String hello(@PathParam("name") final String name) {
-		Key<String> k = Key.create("werwe@starmark.co.kr");
 		ObjectifyService.ofy().save()
-				.entity(new UserSetting(k, "testPushId"));
+				.entity(new UserSetting("werwe@starmark.co.kr", "testPushId"));
 		return "Hello, " + name;
 	}
 
