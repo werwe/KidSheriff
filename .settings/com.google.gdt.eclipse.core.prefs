@@ -1,4 +1,5 @@
 eclipse.preferences.version=1
-lastWarOutDir=/Users/werwe/develop/KeplerWorkspace/Kid Sheriff/war
+jarsExcludedFromWebInfLib=
+lastWarOutDir=/Users/werwe/develop/KeplerWorkspace/Kid Sheriff/war/WEB-INF
 warSrcDir=war
-warSrcDirIsOutput=false
+warSrcDirIsOutput=true

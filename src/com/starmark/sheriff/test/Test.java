@@ -22,14 +22,14 @@ public class Test {
 		Client client = Client.create(config);
 		
 		//local
-		URI uri = getLocalBaseURI();
+		//URI uri = getLocalBaseURI();
 		
 		//remote
-		//URI uri = getBaseURI();
+		URI uri = getBaseURI();
 		
 		WebResource service = client.resource(uri);
 
-//		System.out.println(service.path("apis").path("hello/name=kkkk").accept(
+//		System.out.println(service.path("apis").path("hello/name=kk7777").accept(
 //				MediaType.TEXT_PLAIN).get(String.class));
 		
 		//postRequest(client);
@@ -50,8 +50,8 @@ public class Test {
 	{
 		WebResource service = client.resource(getBaseURI());
 		MultivaluedMap<String,String> queryParams = new MultivaluedMapImpl(); 
-		queryParams.add("email", "werwe@starmark.com");
-		queryParams.add("pushid", "this_is_push_id");
+		queryParams.add("email", "werwe.test@starmark.com");
+		queryParams.add("pushid", "this_is_push_id 22");
 
 		String result = service.path("apis/regist")
 		.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
@@ -65,36 +65,40 @@ public class Test {
 		try {
 			List<String> list = new ArrayList<String>();
 			list.add("werwe@starmark.co.kr");
-			list.add("werwe.test@starmark.co.kr");
+			list.add("werwe.test@gmail.com");
 			LinkRequestData data = new LinkRequestData("werwe.me@gamil.com","this is push id",list);
 			ClientConfig clientConfig = new DefaultClientConfig();
 			clientConfig.getFeatures().put(
 					JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
 			Client client = Client.create(clientConfig);
 
+//			WebResource webResource = client
+//					.resource("http://localhost:8881/apis/link");
+			
 			WebResource webResource = client
-					.resource("http://localhost:8881/apis/link");
+					.resource("http://kid-sheriff-001.appspot.com/apis/link");
+			
 			
 
-//			ClientResponse response = webResource.accept("application/json")
-//					.type("application/json").post(ClientResponse.class, data);
-//
-//			if (response.getStatus() != 200) {
-//				throw new RuntimeException("Failed : HTTP error code : "
-//						+ response.getStatus());
-//			}
-//
-//			String output = response.getEntity(String.class);
-//
-//			System.out.println("Server response .... \n");
-//			System.out.println(output);
-			
-			LinkRequestData response = webResource.accept("application/json")
-					.type("application/json").post(LinkRequestData.class, data);
+			ClientResponse response = webResource.accept("application/json")
+					.type("application/json").post(ClientResponse.class, data);
 
+			if (response.getStatus() != 200) {
+				throw new RuntimeException("Failed : HTTP error code : "
+						+ response.getStatus());
+			}
+
+			String output = response.getEntity(String.class);
 
 			System.out.println("Server response .... \n");
-			System.out.println(response.toString());
+			System.out.println(output);
+			
+//			LinkRequestData response = webResource.accept("application/json")
+//					.type("application/json").post(LinkRequestData.class, data);
+//
+//
+//			System.out.println("Server response .... \n");
+//			System.out.println(response.toString());
 
 		} catch (Exception e) {
 

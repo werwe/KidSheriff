@@ -2,6 +2,7 @@ package com.starmark.sheriff.Entity;
 
 import org.joda.time.DateTime;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.stringifier.Stringifier;
@@ -9,16 +10,17 @@ import com.googlecode.objectify.stringifier.Stringifier;
 @Entity
 public class Location {
 	@Id Long id;
-	String email;
+	
+	Key<UserInfo> key;
 	StringTime time;
 	long lat;
 	long lng;
 	
 	private Location(){}
 	
-	public Location(String email,StringTime time,long lat, long lng)
+	public Location(Key<UserInfo> key,StringTime time,long lat, long lng)
 	{
-		this.email = email;
+		this.key = key;
 		this.time = time;
 		this.lat = lat;
 		this.lng = lng;

@@ -1,5 +1,7 @@
 package com.starmark.sheriff.Entity;
 
+import javax.jdo.annotations.Unique;
+
 import lombok.Data;
 
 import com.googlecode.objectify.annotation.Entity;
@@ -8,17 +10,17 @@ import com.googlecode.objectify.annotation.Index;
 
 @Data
 @Entity
-public class UserSetting {
-	@Id Long id;
+@Index
+public class UserInfo {
 	
-	@Index
+	@Id
 	private String email;
 	private String pushId;
 	
 	
-	private UserSetting(){}
+	private UserInfo(){}
 	
-	public UserSetting(String email, String pushId)
+	public UserInfo(String email, String pushId)
 	{
 		this.email = email;
 		this.pushId = pushId;
