@@ -1,3 +1,4 @@
 eclipse.preferences.version=1
+lastWarOutDir=/Users/werwe/develop/KeplerWorkspace/Kid Sheriff/war
 warSrcDir=war
-warSrcDirIsOutput=true
+warSrcDirIsOutput=false
