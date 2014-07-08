@@ -17,6 +17,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
+import lombok.extern.java.Log;
+
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Objectify;
 import com.googlecode.objectify.Result;
@@ -26,10 +28,11 @@ import com.starmark.sheriff.Entity.LinkInfo;
 import com.starmark.sheriff.Entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
 
+@Log
 @Path("/apis")
 public class SheriffServer {
 
-	private static final Logger log = Logger.getLogger(SheriffServer.class.getName());
+	//private static final Logger log = Logger.getLogger(SheriffServer.class.getName());
 	static
 	{
 		log.setLevel(Level.WARNING);
@@ -72,12 +75,27 @@ public class SheriffServer {
 			
 			LoadType<LinkInfo> linkList = ofy.load().type(LinkInfo.class);
 			int pLength = parent.size();
+			
+			StringBuilder builder = new StringBuilder();
 			for(int i = 0 ; i < pLength ; i++)
 			{
-				Query<LinkInfo> list = linkList.filter("emailReciever=", parent.get(i))
-						.filter("key=",userKey);
-				if (list == null || list.count() == 0)
+				List<LinkInfo> list = 
+						linkList.filter("emailReciever", parent.get(i))
+						.filter("key", userKey)
+						.list();
+
+				builder.append(list+"\n");
+				builder.append("listCount:"+list.size() + "\n");
+				if (list == null || list.size() == 0)
+				{
 					ofy.save().entities(new LinkInfo(userKey,parent.get(i),false));
+				}
+				else
+				{
+					LinkInfo query =list.get(0);
+					query.setLinked(true);
+					ofy.save().entities(query);
+				}
 //				{
 //				    ofy.transact(new VoidWork() { 
 //				      @Override public void vrun() {
@@ -86,6 +104,6 @@ public class SheriffServer {
 //				}
 			}
 			
-		return Response.status(200).entity("success").build();
+		return Response.status(200).entity(builder.toString()).build();
 	}
 }
