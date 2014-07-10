@@ -160,8 +160,10 @@ public class Test {
 	public static void getUserLocation()
 	{
 		try {
-			HistoryRequest id = new HistoryRequest();
-			id.setUserId("werwe.me@gmail.com");
+			HistoryRequest reqData = new HistoryRequest();
+			reqData.setRequestorId("werwe.test@gmail.com");
+			reqData.setTargetUserId("werwe.me@gmail.com");
+			reqData.setLimit(3);
 			
 			ClientConfig clientConfig = new DefaultClientConfig();
 			clientConfig.getFeatures().put(
@@ -172,17 +174,15 @@ public class Test {
 					.resource("http://kid-sheriff-001.appspot.com/apis/getLoc");
 
 			LocationList locations = webResource.accept("application/json")
-					.type("application/json").post(LocationList.class, id);
+					.type("application/json").post(LocationList.class, reqData);
 
 			if(locations != null)
 			{
 				System.out.println("Server response .... \n");
+				System.out.println("result:\n"+locations.getResult());
 				for(Location l : locations.getList())
 					System.out.println("loc:"+l.toString());
-				System.out.println("result:"+locations.getResult());
-				
 			}
-			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

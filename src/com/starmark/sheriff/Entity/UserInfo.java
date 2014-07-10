@@ -21,4 +21,9 @@ public class UserInfo {
 	private String email;
 	private String pushId;
 	private int whichSide = CHILD;
+	
+	public UserInfo(String userId)
+	{
+		this.email = userId;
+	}
 }

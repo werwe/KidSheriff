@@ -37,11 +37,12 @@ import com.starmark.sheriff.pojo.HistoryRequest;
 @Path("/apis")
 public class SheriffServer {
 
-	//private static final Logger log = Logger.getLogger(SheriffServer.class.getName());
 	static
 	{
 		log.setLevel(Level.WARNING);
 	}
+	
+	//test method
 	@GET
 	@Path("/hello/name={name}")
 	@Produces(MediaType.TEXT_PLAIN)
@@ -54,6 +55,7 @@ public class SheriffServer {
 		return "Hello, " + name;
 	}
 
+	//test method
 	@POST
 	@Path("/regist")
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -89,8 +91,6 @@ public class SheriffServer {
 						.filter("key", userKey)
 						.list();
 
-//				builder.append(list+"\n");
-//				builder.append("listCount:"+list.size() + "\n");
 				if (list == null || list.size() == 0)
 				{
 					ofy.save().entities(new LinkInfo(userKey,parent.get(i)));
@@ -146,19 +146,41 @@ public class SheriffServer {
 	@Path("/getLoc")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public LocationList getLocation(HistoryRequest id) {
-			String userId = id.getUserId();
+	public LocationList getLocation(HistoryRequest request) {
 			StringBuilder builder = new StringBuilder();
-			builder.append("id:"+userId);
-			Objectify ofy = OfyService.ofy();
-			Key<UserInfo> userKey = Key.create(UserInfo.class, userId);
-			UserInfo user = new UserInfo();
-			user.setEmail(userId);
-			List<LocationHistory> locList = ofy.load().type(LocationHistory.class).filter("userRef",user).list();
 			LocationList locations = new LocationList();
+			
+			String requestorUserId = request.getRequestorId();
+			String targetUserId = request.getTargetUserId();
+			
+			builder.append("request user:"+requestorUserId+"\n");
+			builder.append("target user:"+targetUserId+"\n");
+			
+			Objectify ofy = OfyService.ofy();
+			
+			Key<UserInfo> targetKey = Key.create(UserInfo.class,targetUserId);
+			List<LinkInfo> list = 
+				ofy.load().type(LinkInfo.class).filter("linkedAccount", requestorUserId)
+				.filter("key", targetKey)
+				.list();
+
+			if (list == null || list.size() == 0)
+			{
+				builder.append("연결된 사용자가 아닙니다.");
+				locations.setResult(builder.toString());
+				return locations;
+			}
+			builder.append("연결된 사용자 입니다.\n");
+
+			UserInfo user = new UserInfo();
+			user.setEmail(targetUserId);
+			List<LocationHistory> locList = ofy.load()
+					.type(LocationHistory.class)
+					.filter("userRef",user)
+					.limit(request.getLimit())
+					.list();
 			if(locList != null && locList.size() > 0)
 			{
-				builder.append("history size:" + locList.size());
 				int size = locList.size();
 				for(int i = 0 ; i < size ; i++)
 				{

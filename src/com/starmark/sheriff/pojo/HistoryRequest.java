@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class HistoryRequest {
-	String userId;
+	String requestorId;
+	String targetUserId;
 	int limit = 0;
 }
