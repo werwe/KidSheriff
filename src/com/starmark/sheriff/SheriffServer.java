@@ -5,7 +5,6 @@ package com.starmark.sheriff;
 
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -21,12 +20,15 @@ import lombok.extern.java.Log;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Objectify;
+import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.Result;
 import com.googlecode.objectify.cmd.LoadType;
-import com.googlecode.objectify.cmd.Query;
 import com.starmark.sheriff.Entity.LinkInfo;
+import com.starmark.sheriff.Entity.LocationHistory;
 import com.starmark.sheriff.Entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
+import com.starmark.sheriff.pojo.Location;
+import com.starmark.sheriff.pojo.LocationInfo;
 
 @Log
 @Path("/apis")
@@ -42,7 +44,7 @@ public class SheriffServer {
 	@Produces(MediaType.TEXT_PLAIN)
 	public String hello(@PathParam("name") final String name) {
 		Result<Key<UserInfo>> result = OfyService.ofy().save()
-				.entity(new UserInfo("werwe222@starmark.co.kr", "testPushId"));
+				.entity(new UserInfo("werwe222@starmark.co.kr", "testPushId",UserInfo.CHILD));
 		if(result == null) log.fine("not file");
 		else log.fine("fine ^^");
 		//else if(result == null) log.log(Level.WARNING, "result is :"+result.now().getId());
@@ -63,13 +65,13 @@ public class SheriffServer {
 	@Path("/link")
 	@Consumes(MediaType.APPLICATION_JSON)
 	// @Produces(MediaType.APPLICATION_JSON)
-	public Response requestLink(LinkRequestData param) {
+	public Response requestRegist(LinkRequestData param) {
 			String userEmail = param.getEmail();
 			String pushId = param.getPushid();
-			List<String> parent = param.getParents();
-			
+			List<String> parent = param.getLinkedAccounts();
+			int whichSide = param.getWhichSide();
 			Objectify ofy = OfyService.ofy();
-			UserInfo info = new UserInfo(userEmail,pushId);
+			UserInfo info = new UserInfo(userEmail,pushId,whichSide);
 			Key<UserInfo> userKey = Key.create(info);
 			ofy.save().entities(info);
 			
@@ -80,22 +82,21 @@ public class SheriffServer {
 			for(int i = 0 ; i < pLength ; i++)
 			{
 				List<LinkInfo> list = 
-						linkList.filter("emailReciever", parent.get(i))
+						linkList.filter("linkedAccount", parent.get(i))
 						.filter("key", userKey)
 						.list();
 
-				builder.append(list+"\n");
-				builder.append("listCount:"+list.size() + "\n");
+//				builder.append(list+"\n");
+//				builder.append("listCount:"+list.size() + "\n");
 				if (list == null || list.size() == 0)
 				{
-					ofy.save().entities(new LinkInfo(userKey,parent.get(i),false));
+					ofy.save().entities(new LinkInfo(userKey,parent.get(i)));
 				}
-				else
-				{
-					LinkInfo query =list.get(0);
-					query.setLinked(true);
-					ofy.save().entities(query);
-				}
+//				else
+//				{
+//					LinkInfo query =list.get(0);
+//					ofy.save().entities(query);
+//				}
 //				{
 //				    ofy.transact(new VoidWork() { 
 //				      @Override public void vrun() {
@@ -104,6 +105,63 @@ public class SheriffServer {
 //				}
 			}
 			
-		return Response.status(200).entity(builder.toString()).build();
+		return Response.status(200).entity("success").build();
+	}
+	
+	@POST
+	@Path("/updateLoc")
+	@Consumes(MediaType.APPLICATION_JSON)
+	// @Produces(MediaType.APPLICATION_JSON)
+	public Response updateLocation(LocationInfo param) {
+			StringBuilder builder = new StringBuilder();
+			String userId = param.getUserId();
+			Location loc = param.getLoc();
+			Objectify ofy = OfyService.ofy();
+			Key<UserInfo> userKey = Key.create(UserInfo.class, userId);
+			
+			builder.append(userKey.toString()).append(" / ");
+			List<UserInfo> userList = ofy.load().type(UserInfo.class).filterKey(userKey).list();
+			
+			if(userList != null && userList.size() > 0)
+			{
+				Ref<UserInfo> refUser = Ref.create(userList.get(0));
+			
+				LocationHistory history = new LocationHistory(refUser,loc);
+				ofy.save().entities(history);
+				
+				builder.append(loc.toString());
+			}
+			else
+			{
+				//유저 정보가 없다.
+				return Response.status(200).entity("no user infomation : " + builder.toString()).build();
+			}	
+		return Response.status(200).entity("success : " + builder.toString()).build();
+	}
+	
+	@POST
+	@Path("/getLoc")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getLocation(LocationInfo param) {
+			String userId = param.getUserId();
+			Location loc = param.getLoc();
+			Objectify ofy = OfyService.ofy();
+			
+			List<UserInfo> userList = ofy.load().type(UserInfo.class).filter("email",userId).list();
+			
+			if(userList != null && userList.size() > 0)
+			{
+				Ref<UserInfo> refUser = Ref.create(userList.get(0));
+			
+				LocationHistory history = new LocationHistory(refUser,loc);
+				ofy.save().entities(history);
+			}
+			else
+			{
+				//유저 정보가 없다.
+				return Response.status(200).entity("no user infomation").build();
+			}	
+		return Response.status(200).entity("success").build();
 	}
 }

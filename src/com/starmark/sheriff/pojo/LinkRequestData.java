@@ -4,8 +4,11 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.ToString;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import com.starmark.sheriff.Entity.UserInfo;
+
 @Data
 @ToString
 @AllArgsConstructor
@@ -14,5 +17,6 @@ public class LinkRequestData
 {
 	private String email;
 	private String pushid;
-	private List<String> parents;
+	private List<String> linkedAccounts;
+	private int whichSide = UserInfo.CHILD;
 }

@@ -7,7 +7,14 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriBuilder;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
+
+import com.starmark.sheriff.Entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
+import com.starmark.sheriff.pojo.Location;
+import com.starmark.sheriff.pojo.LocationInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -29,11 +36,12 @@ public class Test {
 		
 		WebResource service = client.resource(uri);
 
-//		System.out.println(service.path("apis").path("hello/name=kk7777").accept(
-//				MediaType.TEXT_PLAIN).get(String.class));
+		//		System.out.println(service.path("apis").path("hello/name=kk7777").accept(
+		//				MediaType.TEXT_PLAIN).get(String.class));
 		
 		//postRequest(client);
 		linkRequest();
+		updateLocRequest();
 	}
 
 	private static URI getLocalBaseURI() {
@@ -66,7 +74,8 @@ public class Test {
 			List<String> list = new ArrayList<String>();
 			list.add("werwe@starmark.co.kr");
 			list.add("werwe.test@gmail.com");
-			LinkRequestData data = new LinkRequestData("werwe.me@gamil.com","this is push id",list);
+			LinkRequestData data = 
+				new LinkRequestData("werwe.me@gmail.com","this is push id",list, UserInfo.CHILD);
 			ClientConfig clientConfig = new DefaultClientConfig();
 			clientConfig.getFeatures().put(
 					JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
@@ -101,9 +110,49 @@ public class Test {
 //			System.out.println(response.toString());
 
 		} catch (Exception e) {
-
 			e.printStackTrace();
-
 		}
+	}
+		
+		public static void updateLocRequest()
+		{
+			try {
+				LocationInfo info = new LocationInfo();
+				Location loc = new Location();
+				DateTime time = new DateTime();
+				DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+				String currentTime = time.toString(fmt);
+				loc.setDate(currentTime);
+				//37.504537, 127.049027 //선릉역
+				loc.setLat(37.504537);
+				loc.setLng(127.049027);
+				
+				System.out.println("currentTime:"+currentTime);
+				info.setLoc(loc);
+				info.setUserId("werwe.me@gmail.com");
+				
+				ClientConfig clientConfig = new DefaultClientConfig();
+				clientConfig.getFeatures().put(
+						JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+				Client client = Client.create(clientConfig);
+				
+				WebResource webResource = client
+						.resource("http://kid-sheriff-001.appspot.com/apis/updateLoc");
+
+				ClientResponse response = webResource.accept("application/json")
+						.type("application/json").post(ClientResponse.class, info);
+
+				if (response.getStatus() != 200) {
+					throw new RuntimeException("Failed : HTTP error code : "
+							+ response.getStatus());
+				}
+
+				String output = response.getEntity(String.class);
+				System.out.println("Server response .... \n");
+				System.out.println(output);
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 	}
 }

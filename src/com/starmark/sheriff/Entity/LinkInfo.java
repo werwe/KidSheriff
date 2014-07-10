@@ -16,12 +16,12 @@ public class LinkInfo{
 	@Index
 	Key<UserInfo> key;
 	@Index
-	String emailReciever;
+	String linkedAccount;
 
 	private LinkInfo(){}
-	public LinkInfo(Key<UserInfo> key,String reciever)
+	public LinkInfo(Key<UserInfo> key,String account)
 	{
 		this.key = key;
-		this.emailReciever = reciever;
+		this.linkedAccount = account;
 	}
 }
