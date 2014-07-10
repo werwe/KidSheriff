@@ -12,6 +12,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
@@ -29,6 +30,8 @@ import com.starmark.sheriff.entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
 import com.starmark.sheriff.pojo.Location;
 import com.starmark.sheriff.pojo.LocationInfo;
+import com.starmark.sheriff.pojo.LocationList;
+import com.starmark.sheriff.pojo.HistoryRequest;
 
 @Log
 @Path("/apis")
@@ -143,25 +146,26 @@ public class SheriffServer {
 	@Path("/getLoc")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getLocation(LocationInfo param) {
-			String userId = param.getUserId();
-			Location loc = param.getLoc();
+	public LocationList getLocation(HistoryRequest id) {
+			String userId = id.getUserId();
+			StringBuilder builder = new StringBuilder();
+			builder.append("id:"+userId);
 			Objectify ofy = OfyService.ofy();
-			
-			List<UserInfo> userList = ofy.load().type(UserInfo.class).filter("email",userId).list();
-			
-			if(userList != null && userList.size() > 0)
+			Key<UserInfo> userKey = Key.create(UserInfo.class, userId);
+			UserInfo user = new UserInfo();
+			user.setEmail(userId);
+			List<LocationHistory> locList = ofy.load().type(LocationHistory.class).filter("userRef",user).list();
+			LocationList locations = new LocationList();
+			if(locList != null && locList.size() > 0)
 			{
-				Ref<UserInfo> refUser = Ref.create(userList.get(0));
-			
-				LocationHistory history = new LocationHistory(refUser,loc);
-				ofy.save().entities(history);
+				builder.append("history size:" + locList.size());
+				int size = locList.size();
+				for(int i = 0 ; i < size ; i++)
+				{
+					locations.addLocation(locList.get(i).getLoc());
+				}
 			}
-			else
-			{
-				//유저 정보가 없다.
-				return Response.status(200).entity("no user infomation").build();
-			}	
-		return Response.status(200).entity("success").build();
+			locations.setResult(builder.toString());
+		return locations;
 	}
 }

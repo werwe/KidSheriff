@@ -15,6 +15,8 @@ import com.starmark.sheriff.entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
 import com.starmark.sheriff.pojo.Location;
 import com.starmark.sheriff.pojo.LocationInfo;
+import com.starmark.sheriff.pojo.LocationList;
+import com.starmark.sheriff.pojo.HistoryRequest;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -42,6 +44,7 @@ public class Test {
 		//postRequest(client);
 		linkRequest();
 		updateLocRequest();
+		getUserLocation();
 	}
 
 	private static URI getLocalBaseURI() {
@@ -146,13 +149,43 @@ public class Test {
 				throw new RuntimeException("Failed : HTTP error code : "
 						+ response.getStatus());
 			}
-
 			String output = response.getEntity(String.class);
 			System.out.println("Server response .... \n");
 			System.out.println(output);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void getUserLocation()
+	{
+		try {
+			HistoryRequest id = new HistoryRequest();
+			id.setUserId("werwe.me@gmail.com");
+			
+			ClientConfig clientConfig = new DefaultClientConfig();
+			clientConfig.getFeatures().put(
+					JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+			Client client = Client.create(clientConfig);
+			
+			WebResource webResource = client
+					.resource("http://kid-sheriff-001.appspot.com/apis/getLoc");
 
+			LocationList locations = webResource.accept("application/json")
+					.type("application/json").post(LocationList.class, id);
+
+			if(locations != null)
+			{
+				System.out.println("Server response .... \n");
+				for(Location l : locations.getList())
+					System.out.println("loc:"+l.toString());
+				System.out.println("result:"+locations.getResult());
+				
+			}
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 }
+
