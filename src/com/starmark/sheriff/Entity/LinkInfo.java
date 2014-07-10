@@ -1,4 +1,4 @@
-package com.starmark.sheriff.Entity;
+package com.starmark.sheriff.entity;
 
 import lombok.Data;
 

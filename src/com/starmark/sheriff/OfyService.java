@@ -3,9 +3,9 @@ package com.starmark.sheriff;
 import com.googlecode.objectify.Objectify;
 import com.googlecode.objectify.ObjectifyFactory;
 import com.googlecode.objectify.ObjectifyService;
-import com.starmark.sheriff.Entity.LinkInfo;
-import com.starmark.sheriff.Entity.LocationHistory;
-import com.starmark.sheriff.Entity.UserInfo;
+import com.starmark.sheriff.entity.LinkInfo;
+import com.starmark.sheriff.entity.LocationHistory;
+import com.starmark.sheriff.entity.UserInfo;
 
 public class OfyService {
     static {

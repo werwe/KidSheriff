@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import com.starmark.sheriff.Entity.UserInfo;
+import com.starmark.sheriff.entity.UserInfo;
 
 @Data
 @ToString

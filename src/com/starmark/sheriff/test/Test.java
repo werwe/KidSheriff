@@ -11,7 +11,7 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
-import com.starmark.sheriff.Entity.UserInfo;
+import com.starmark.sheriff.entity.UserInfo;
 import com.starmark.sheriff.pojo.LinkRequestData;
 import com.starmark.sheriff.pojo.Location;
 import com.starmark.sheriff.pojo.LocationInfo;
@@ -114,45 +114,45 @@ public class Test {
 		}
 	}
 		
-		public static void updateLocRequest()
-		{
-			try {
-				LocationInfo info = new LocationInfo();
-				Location loc = new Location();
-				DateTime time = new DateTime();
-				DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
-				String currentTime = time.toString(fmt);
-				loc.setDate(currentTime);
-				//37.504537, 127.049027 //선릉역
-				loc.setLat(37.504537);
-				loc.setLng(127.049027);
-				
-				System.out.println("currentTime:"+currentTime);
-				info.setLoc(loc);
-				info.setUserId("werwe.me@gmail.com");
-				
-				ClientConfig clientConfig = new DefaultClientConfig();
-				clientConfig.getFeatures().put(
-						JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-				Client client = Client.create(clientConfig);
-				
-				WebResource webResource = client
-						.resource("http://kid-sheriff-001.appspot.com/apis/updateLoc");
+	public static void updateLocRequest()
+	{
+		try {
+			LocationInfo info = new LocationInfo();
+			Location loc = new Location();
+			DateTime time = new DateTime();
+			DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+			String currentTime = time.toString(fmt);
+			loc.setDate(currentTime);
+			//37.504537, 127.049027 //선릉역
+			loc.setLat(37.504537);
+			loc.setLng(127.049027);
+			
+			System.out.println("currentTime:"+currentTime);
+			info.setLoc(loc);
+			info.setUserId("werwe.me@gmail.com");
+			
+			ClientConfig clientConfig = new DefaultClientConfig();
+			clientConfig.getFeatures().put(
+					JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+			Client client = Client.create(clientConfig);
+			
+			WebResource webResource = client
+					.resource("http://kid-sheriff-001.appspot.com/apis/updateLoc");
 
-				ClientResponse response = webResource.accept("application/json")
-						.type("application/json").post(ClientResponse.class, info);
+			ClientResponse response = webResource.accept("application/json")
+					.type("application/json").post(ClientResponse.class, info);
 
-				if (response.getStatus() != 200) {
-					throw new RuntimeException("Failed : HTTP error code : "
-							+ response.getStatus());
-				}
-
-				String output = response.getEntity(String.class);
-				System.out.println("Server response .... \n");
-				System.out.println(output);
-
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (response.getStatus() != 200) {
+				throw new RuntimeException("Failed : HTTP error code : "
+						+ response.getStatus());
 			}
+
+			String output = response.getEntity(String.class);
+			System.out.println("Server response .... \n");
+			System.out.println(output);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
