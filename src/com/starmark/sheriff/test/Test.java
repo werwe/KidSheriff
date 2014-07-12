@@ -12,11 +12,12 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 import com.starmark.sheriff.entity.UserInfo;
+import com.starmark.sheriff.pojo.HistoryRequest;
 import com.starmark.sheriff.pojo.LinkRequestData;
 import com.starmark.sheriff.pojo.Location;
 import com.starmark.sheriff.pojo.LocationInfo;
 import com.starmark.sheriff.pojo.LocationList;
-import com.starmark.sheriff.pojo.HistoryRequest;
+import com.starmark.sheriff.pojo.UserDataResult;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
@@ -42,9 +43,11 @@ public class Test {
 		//				MediaType.TEXT_PLAIN).get(String.class));
 		
 		//postRequest(client);
-		linkRequest();
-		updateLocRequest();
-		getUserLocation();
+		//linkRequest();
+		//updateLocRequest();
+		//getUserLocation();
+		
+		accountCheckRequst();
 	}
 
 	private static URI getLocalBaseURI() {
@@ -69,6 +72,27 @@ public class Test {
 		.post(String.class,queryParams);
 		
 		System.out.println(result);
+	}
+	
+	public static void accountCheckRequst()
+	{
+		ClientConfig config = new DefaultClientConfig();
+		config.getFeatures().put(
+				JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
+		Client client = Client.create(config);
+		String account = "werwe.test@gmail.com";
+		WebResource webResource = client
+				.resource("http://kid-sheriff-001.appspot.com/apis/check/account="+account);
+		ClientResponse response = webResource.accept("application/json")
+				
+				.get(ClientResponse.class);
+		if (response.getStatus() != 200) {
+			throw new RuntimeException("Failed : HTTP error code : "
+					+ response.getStatus());
+		}
+		UserDataResult output = response.getEntity(UserDataResult.class);
+		System.out.println("check account response .... \n");
+		System.out.println(output);
 	}
 	
 	public static void linkRequest()
