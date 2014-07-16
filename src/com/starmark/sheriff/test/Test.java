@@ -1,4 +1,8 @@
 package com.starmark.sheriff.test;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +29,8 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.multipart.FormDataBodyPart;
+import com.sun.jersey.multipart.FormDataMultiPart;
 
 public class Test {
 	public static void main(String[] args) {
@@ -47,7 +53,56 @@ public class Test {
 		//updateLocRequest();
 		//getUserLocation();
 		
-		accountCheckRequst();
+		//accountCheckRequst();
+		
+		//uploadDummyLocations();
+		uploadFile();
+	}
+
+	//37.504537, 127.049027 //선릉역
+	//37.505606, 127.048461
+	//37.505931, 127.048284
+	//37.506159, 127.048869
+	//37.506884, 127.049003
+	//37.506754, 127.050211
+	//37.506790, 127.051560
+	//37.506925, 127.052279
+	//37.507461, 127.053507
+	//37.507878, 127.053547
+	//37.508546, 127.052987
+	//37.509459, 127.051903
+	//37.511196, 127.050156
+	//37.509203, 127.044249
+	private static void uploadDummyLocations() {
+		ArrayList<Location> list = new ArrayList<Location>();
+		list.add(new Location(37.504537, 127.049027)); //선릉역
+		list.add(new Location(37.505606, 127.048461));
+		list.add(new Location(37.505931, 127.048284));
+		list.add(new Location(37.506159, 127.048869));
+		list.add(new Location(37.506884, 127.049003));
+		list.add(new Location(37.506754, 127.050211));
+		list.add(new Location(37.506790, 127.051560));
+		list.add(new Location(37.506925, 127.052279));
+		list.add(new Location(37.507461, 127.053507));
+		list.add(new Location(37.507878, 127.053547));
+		list.add(new Location(37.508546, 127.052987));
+		list.add(new Location(37.509459, 127.051903));
+		list.add(new Location(37.511196, 127.050156));
+		list.add(new Location(37.509203, 127.044249));
+		
+		DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+		
+		for(Location l:list)
+		{
+			l.setDate(DateTime.now().toString(fmt));
+			updateLocRequest("werwe@starmark.co.kr",l);
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
 	}
 
 	private static URI getLocalBaseURI() {
@@ -99,10 +154,10 @@ public class Test {
 	{
 		try {
 			List<String> list = new ArrayList<String>();
-			list.add("werwe@starmark.co.kr");
+			list.add("werwe.me@gmail.com");
 			list.add("werwe.test@gmail.com");
 			LinkRequestData data = 
-				new LinkRequestData("werwe.me@gmail.com","this is push id",list, UserInfo.CHILD);
+				new LinkRequestData("werwe@starmark.co.kr","this is push id",list, UserInfo.CHILD);
 			ClientConfig clientConfig = new DefaultClientConfig();
 			clientConfig.getFeatures().put(
 					JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
@@ -141,22 +196,12 @@ public class Test {
 		}
 	}
 		
-	public static void updateLocRequest()
+	public static void updateLocRequest(String emailId, Location loc)
 	{
 		try {
 			LocationInfo info = new LocationInfo();
-			Location loc = new Location();
-			DateTime time = new DateTime();
-			DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
-			String currentTime = time.toString(fmt);
-			loc.setDate(currentTime);
-			//37.504537, 127.049027 //선릉역
-			loc.setLat(37.504537);
-			loc.setLng(127.049027);
-			
-			System.out.println("currentTime:"+currentTime);
 			info.setLoc(loc);
-			info.setUserId("werwe.me@gmail.com");
+			info.setUserId(emailId);
 			
 			ClientConfig clientConfig = new DefaultClientConfig();
 			clientConfig.getFeatures().put(
@@ -210,6 +255,34 @@ public class Test {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static void uploadFile(){
+		   Client client = Client.create();
+		    WebResource resource = client
+		    		.resource("http://kid-sheriff-001.appspot.com/apis/uploadImg");
+
+		    FormDataMultiPart formDataMultiPart = new FormDataMultiPart();
+		    formDataMultiPart.field("image", "map.png");
+
+		    FileInputStream input = null;
+			try {
+				input = new FileInputStream(new File("map.png"));
+				System.out.println("file exists");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		    FormDataBodyPart bodyPart = new FormDataBodyPart(
+		    		"image",
+		    		input,
+		            MediaType.APPLICATION_OCTET_STREAM_TYPE);
+		    formDataMultiPart.bodyPart(bodyPart);
+
+		    String reString = resource.type(MediaType.MULTIPART_FORM_DATA)
+		            .accept(MediaType.TEXT_PLAIN)
+		            .post(String.class, formDataMultiPart);
+		    
+		    System.out.println(reString);
 	}
 }
 

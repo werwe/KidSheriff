@@ -3,40 +3,117 @@ package com.starmark.sheriff;
 //import static com.starmark.sheriff.OfyService.ofy;
 //import static com.starmark.sheriff.OfyService.factory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import lombok.extern.java.Log;
 
+import com.google.android.gcm.server.Message;
+import com.google.android.gcm.server.MulticastResult;
+import com.google.android.gcm.server.Sender;
+import com.google.appengine.api.blobstore.BlobInfo;
+import com.google.appengine.api.blobstore.BlobInfoFactory;
+import com.google.appengine.api.blobstore.BlobKey;
+import com.google.appengine.api.blobstore.BlobstoreFailureException;
+import com.google.appengine.api.blobstore.BlobstoreService;
+import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
+import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Objectify;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.Result;
 import com.googlecode.objectify.cmd.LoadType;
+import com.starmark.resource.Entity;
+import com.starmark.resource.FileMeta;
+import com.starmark.resource.FileUrl;
+import com.starmark.sheriff.entity.ImageStore;
 import com.starmark.sheriff.entity.LinkInfo;
 import com.starmark.sheriff.entity.LocationHistory;
 import com.starmark.sheriff.entity.UserInfo;
 import com.starmark.sheriff.pojo.HistoryRequest;
+import com.starmark.sheriff.pojo.ImageStoreInfoList;
 import com.starmark.sheriff.pojo.LinkRequestData;
 import com.starmark.sheriff.pojo.Location;
 import com.starmark.sheriff.pojo.LocationInfo;
 import com.starmark.sheriff.pojo.LocationList;
 import com.starmark.sheriff.pojo.UserDataResult;
 
+
 @Log
 @Path("/apis")
 public class SheriffServer {
+    
+	
+	Sender mSender = new Sender("AIzaSyC8COzLVGrhts62teW1SDGTWJ14Q-EzigI");
+	
+	@GET
+	@Path("/pushNoti/name={name}")
+	public Response push(@PathParam("name") final String name) throws IOException {
+		StringBuilder builder = new StringBuilder();
+		String requestorUserId = name;
+		
+		builder.append("request user:"+requestorUserId+"\n");
+		
+		Objectify ofy = OfyService.ofy();
+		
 
+		List<LinkInfo> list = 
+			ofy.load().type(LinkInfo.class).filter("linkedAccount", requestorUserId)
+			.list();
+		ArrayList<Key<UserInfo>> keys = new ArrayList<Key<UserInfo>>(list.size());
+		for(LinkInfo info:list)
+			keys.add(info.getKey());
+		
+		LoadType<UserInfo> loadType = ofy.load().type(UserInfo.class);
+		
+		
+		List<String> pushIdList = new ArrayList<String>();
+		for(Key<UserInfo> key:keys)
+		{
+			List<UserInfo> infos = loadType.filterKey(key).list();
+			if(infos != null && infos.size() > 0)
+			{
+				builder.append("target user:"+infos.get(0).getEmail()+"\n");
+				pushIdList.add(infos.get(0).getPushId());
+			}
+		}
+			
+		Message message = new Message.Builder()
+		.addData("msg", "alert").build();
+
+		MulticastResult multiResult = mSender.send(message, pushIdList, 5);
+		 		 
+		if (multiResult != null) {
+			List<com.google.android.gcm.server.Result> resultList = multiResult.getResults();
+			for (com.google.android.gcm.server.Result result : resultList) {
+				builder.append(result.getMessageId()+"\n");
+			}
+		}
+		
+		return Response.ok(builder.toString()).build();
+	}
+	
 	static
 	{
 		log.setLevel(Level.WARNING);
@@ -222,29 +299,199 @@ public class SheriffServer {
 		return locations;
 	}
 	
-//	@POST
-//	@Path("/getServerKey")
-//	@Consumes(MediaType.APPLICATION_JSON)
-//	@Produces(MediaType.TEXT_PLAIN)
-//	public LocationList push(HistoryRequest request) {
-//		//AIzaSyC8COzLVGrhts62teW1SDGTWJ14Q-EzigI : Server Key
-//		ClientConfig clientConfig = new DefaultClientConfig();
-//		clientConfig.getFeatures().put(
-//				JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-//		Client client = Client.create(clientConfig);
-//		
-//		WebResource webResource = client
-//				.resource("http://kid-sheriff-001.appspot.com/apis/updateLoc");
-//
-//		ClientResponse response = webResource.accept("application/json")
-//				.type("application/json").post(ClientResponse.class, info);
-//
-//		if (response.getStatus() != 200) {
-//			throw new RuntimeException("Failed : HTTP error code : "
-//					+ response.getStatus());
-//		}
-//		String output = response.getEntity(String.class);
-//		return locations;
-//	}
+
 	
+	/**
+	 * Blob Store Service
+	 */
+    private final BlobstoreService blobstoreService = BlobstoreServiceFactory.getBlobstoreService();
+    private final BlobInfoFactory blobInfoFactory = new BlobInfoFactory();
+
+    /* step 1. get a unique url */
+
+    @GET
+    @Path("/file/url")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getCallbackUrl() {
+        String url = blobstoreService.createUploadUrl("/apis/file");
+        return Response.ok(new FileUrl(url)).build();
+    }
+
+    /* step 2. post a file */
+
+    @POST
+    @Path("/file")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response post(@Context HttpServletRequest req, @Context HttpServletResponse res) throws IOException, URISyntaxException {
+    	
+    	String emailId = req.getParameter("emailId");
+    	double lat = Double.parseDouble(req.getParameter("lat"));
+    	double lng = Double.parseDouble(req.getParameter("lng"));
+    	String date = req.getParameter("date");
+    	Ref<UserInfo> userRef = Ref.create(Key.create(UserInfo.class, emailId));
+    	
+    	
+        Map<String, BlobKey> blobs = blobstoreService.getUploadedBlobs(req);
+        
+        StringBuilder builder = new StringBuilder();
+        builder.append("emailId:"+req.getParameter("emailId")+"\n");
+        //String emailId = req.getParameter("emailId");
+        for(String key:blobs.keySet())
+        	builder.append("key:"+key+"\n");
+        BlobKey blobKey = blobs.get("file");
+        //res.sendRedirect("/apis/file/" + blobKey.getKeyString() + "/meta");
+
+        builder.append("blobKey is " + blobKey + "\n");
+        if(blobKey == null)
+        {
+        	return Response.ok(new Entity(builder.toString(),null),MediaType.APPLICATION_JSON).build();
+        }
+        BlobInfo info = blobInfoFactory.loadBlobInfo(blobKey);
+        String name = info.getFilename();
+        long size = info.getSize();
+        String url = "/apis/file/" + blobKey.getKeyString();
+
+        ImageStore store = new ImageStore();
+        store.setUser(userRef);
+        store.setLat(lat);
+        store.setLng(lng);
+        store.setDate(date);
+        store.setBlobKey(blobKey.getKeyString());
+        
+        OfyService.ofy().save().entities(store);
+        /**
+         * Preview 이미지 
+         */
+        //ImagesService imagesService = ImagesServiceFactory.getImagesService();
+        //ServingUrlOptions.Builder.withBlobKey(blobKey).crop(true).imageSize(80);
+        //int sizePreview = 80;
+        //String urlPreview = imagesService
+        //           .getServingUrl(ServingUrlOptions.Builder.withBlobKey(blobKey)
+        //       .crop(true).imageSize(sizePreview));
+
+        FileMeta meta = new FileMeta(name, size, url);
+        
+        
+
+        List<FileMeta> metas = Lists.newArrayList(meta);
+        
+        
+        Entity entity = new Entity(builder.toString(),metas);
+        return Response.ok(entity, MediaType.APPLICATION_JSON).build();
+    }
+    
+    //apis/getImages/name
+	@GET
+	@Path("/getImages/name={name}")
+	public Response getImages(@PathParam("name") final String name) {
+			StringBuilder builder = new StringBuilder();
+			ImageStoreInfoList infos = new ImageStoreInfoList(name);
+			
+			builder.append("name:"+name).append("\n");
+			Objectify ofy = OfyService.ofy();
+			
+//			Key<UserInfo> targetKey = Key.create(UserInfo.class,name);
+//			List<ImageStore> list = 
+//				ofy.load().type(ImageStore.class).filter(", requestorUserId)
+//				.filter("key", targetKey)
+//				.list();
+//
+//			if (list == null || list.size() == 0)
+//			{
+//				builder.append("연결된 사용자가 아닙니다.");
+//				locations.setResult(builder.toString());
+//				return locations;
+//			}
+//			builder.append("연결된 사용자 입니다.\n");
+
+			UserInfo user = new UserInfo();
+			user.setEmail(name);
+			List<ImageStore> imageList = ofy.load()
+					.type(ImageStore.class)
+//					.order("-date")
+					.filter("user",user)
+					.limit(20)
+					.list();
+			
+			//builder.append(imageList);
+			if(imageList != null && imageList.size() > 0)
+			{
+				int size = imageList.size();
+				for(int i = 0 ; i < size ; i++)
+				{
+					infos.add(imageList.get(i));
+				}
+			}
+			infos.result = builder.toString();
+			
+		return Response.ok(infos, MediaType.APPLICATION_JSON).build();
+	}
+
+    /* step 3. redirected to the meta info */
+
+    @GET
+    @Path("/file/{key}/meta")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response redirect(@PathParam("key") String key) throws IOException {
+        BlobKey blobKey = new BlobKey(key);
+        BlobInfo info = blobInfoFactory.loadBlobInfo(blobKey);
+
+        String name = info.getFilename();
+        long size = info.getSize();
+        String url = "/apis/file/" + key; 
+        FileMeta meta = new FileMeta(name, size, url);
+
+        List<FileMeta> metas = Lists.newArrayList(meta);
+        GenericEntity<List<FileMeta>> entity = new GenericEntity<List<FileMeta>>(metas) {};
+        return Response.ok(entity).build();
+    }
+
+    /* step 4. download the file */
+
+    @GET
+    @Path("/file/{key}")
+    public Response serve(@PathParam("key") String key, @Context HttpServletResponse response) throws IOException {
+        BlobKey blobKey = new BlobKey(key);
+        final BlobInfo blobInfo = blobInfoFactory.loadBlobInfo(blobKey);
+        response.setHeader("Content-Disposition", "attachment; filename=" + blobInfo.getFilename());
+        BlobstoreServiceFactory.getBlobstoreService().serve(blobKey, response);
+        return Response.ok().build();
+    }
+
+    /* step 5. delete the file */
+
+    @DELETE
+    @Path("/file/{key}")
+    public Response delete(@PathParam("key") String key) {
+        Status status;
+        try {
+            blobstoreService.delete(new BlobKey(key));
+            status = Status.OK;
+        } catch (BlobstoreFailureException bfe) {
+            status = Status.NOT_FOUND;
+        }
+        return Response.status(status).build();
+    }
+    
+    //apis/deleteAllImageStore
+	@GET
+	@Path("/deleteAllImageStore")
+	public Response deleteAllImageStore() {
+			Objectify ofy = OfyService.ofy();
+			List<Key<ImageStore>> keys = ofy.load().type(ImageStore.class).keys().list();
+			ofy.delete().keys(keys).now();
+
+		return Response.ok("remove " + keys.size() +" entities").build();
+	}
+	
+    //apis/deleteAllBlobs
+	@GET
+	@Path("/deleteAllBlobs")
+	public Response deleteAllBlobs() {
+			Objectify ofy = OfyService.ofy();
+			List<Key<ImageStore>> keys = ofy.load().type(ImageStore.class).keys().list();
+			ofy.delete().keys(keys).now();
+
+		return Response.ok("remove " + keys.size() +" entities").build();
+	}
 }
